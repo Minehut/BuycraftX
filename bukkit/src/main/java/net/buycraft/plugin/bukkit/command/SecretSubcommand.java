@@ -8,7 +8,6 @@ import net.buycraft.plugin.data.responses.ServerInformation;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
-import org.bukkit.command.ConsoleCommandSender;
 
 import java.io.IOException;
 import java.util.logging.Level;
@@ -19,10 +18,6 @@ public class SecretSubcommand implements Subcommand {
 
     @Override
     public void execute(final CommandSender sender, final String[] args) {
-        if (!(sender instanceof ConsoleCommandSender)) {
-            sender.sendMessage(ChatColor.RED + plugin.getI18n().get("secret_console_only"));
-            return;
-        }
 
         if (args.length != 1) {
             sender.sendMessage(ChatColor.RED + plugin.getI18n().get("secret_need_key"));
