@@ -18,10 +18,6 @@ public class SecretSubcommand implements Subcommand {
 
     @Override
     public void execute(final CommandSender sender, final String[] args) {
-        if (!sender.equals(plugin.getProxy().getConsole())) {
-            sender.sendMessage(ChatColor.RED + plugin.getI18n().get("secret_console_only"));
-            return;
-        }
 
         if (args.length != 1) {
             sender.sendMessage(ChatColor.RED + plugin.getI18n().get("secret_need_key"));
