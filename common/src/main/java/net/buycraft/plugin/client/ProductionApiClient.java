@@ -14,6 +14,7 @@ import java.lang.reflect.Type;
 import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.Objects;
+import java.util.logging.Logger;
 
 public class ProductionApiClient implements ApiClient {
     private static final String API_URL = "https://plugin.buycraft.net";
@@ -25,6 +26,8 @@ public class ProductionApiClient implements ApiClient {
     private final OkHttpClient httpClient;
     private final String secret;
 
+    private Logger logger;
+
     public ProductionApiClient(String secret) {
         this(secret, new OkHttpClient());
     }
@@ -32,6 +35,12 @@ public class ProductionApiClient implements ApiClient {
     public ProductionApiClient(String secret, OkHttpClient client) {
         this.secret = Objects.requireNonNull(secret, "secret");
         this.httpClient = Objects.requireNonNull(client, "client");
+    }
+
+    public ProductionApiClient(String secret, OkHttpClient client, Logger logger) {
+        this.secret = Objects.requireNonNull(secret, "secret");
+        this.httpClient = Objects.requireNonNull(client, "client");
+        this.logger = logger;
     }
 
     private Request.Builder getBuilder(String endpoint) {
@@ -79,7 +88,10 @@ public class ProductionApiClient implements ApiClient {
                 }
             }
         } catch (Exception e) {
-            throw new ApiException("Unable to connect to API");
+            if(this.logger != null) {
+                this.logger.severe("Unable to connect to API. Please check that your secret key is correct.");
+            }
+            return null;
         }
     }
 
@@ -91,6 +103,7 @@ public class ProductionApiClient implements ApiClient {
     @Override
     public Listing retrieveListing() throws IOException, ApiException {
         Listing listing = get("/listing", CacheControl.FORCE_NETWORK, Listing.class);
+        if(listing != null)
         listing.order();
         return listing;
     }
@@ -152,6 +165,28 @@ public class ProductionApiClient implements ApiClient {
     }
 
     @Override
+    public CheckoutUrlResponse getCategoryUri(String username, int categoryId) throws IOException, ApiException {
+        RequestBody body = new FormBody.Builder()
+                .add("username", username)
+                .add("category", "true")
+                .add("category_id", Integer.toString(categoryId))
+                .build();
+
+        Request request = getBuilder("/checkout")
+                .post(body)
+                .build();
+        Response response = httpClient.newCall(request).execute();
+
+        try (ResponseBody rspBody = response.body()) {
+            if (!response.isSuccessful()) {
+                throw handleError(response, rspBody);
+            } else {
+                return gson.fromJson(rspBody.charStream(), CheckoutUrlResponse.class);
+            }
+        }
+    }
+
+    @Override
     public List<RecentPayment> getRecentPayments(int limit) throws IOException, ApiException {
         return get("/payments?limit=" + limit, CacheControl.FORCE_NETWORK, new TypeToken<List<RecentPayment>>() {
         }.getType());
@@ -160,6 +195,9 @@ public class ProductionApiClient implements ApiClient {
     @Override
     public List<Coupon> getAllCoupons() throws IOException, ApiException {
         CouponListing listing = get("/coupons", CouponListing.class);
+        if(listing == null){
+            return null;
+        }
         return listing.getData();
     }
 
